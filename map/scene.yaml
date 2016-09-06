@@ -1,0 +1,101 @@
+import:
+    - https://raw.githubusercontent.com/tangrams/cinnabar-style-more-labels/gh-pages/cinnabar-style-more-labels.yaml
+    - https://tangrams.github.io/blocks/color/tools.yaml
+    - https://tangrams.github.io/blocks/generative/noise.yaml
+    - https://tangrams.github.io/blocks/geometry/normal.yaml
+    - https://tangrams.github.io/blocks/space/tile.yaml
+    - https://tangrams.github.io/blocks/texture/zoom-fade.yaml
+    - https://tangrams.github.io/blocks/filter/hatch.yaml
+    - https://tangrams.github.io/blocks/lines/datastream-full.yaml
+    - https://tangrams.github.io/blocks/lines/glow.yaml
+    - https://tangrams.github.io/blocks/functions/zoom.yaml
+    - https://tangrams.github.io/blocks/geometry/dynamic-width.yaml
+    - https://tangrams.github.io/blocks/geometry/dynamic-height.yaml
+    - https://tangrams.github.io/blocks/filter/tv.yaml
+
+sources:
+    osm:
+        type: TopoJSON
+        url:  https://vector.mapzen.com/osm/all/{z}/{x}/{y}.topojson?api_key=vector-tiles-ChxYDvR
+        max_zoom: 16
+    bigrivers:
+        type: GeoJSON
+        url: bigrivers.geojson
+
+global:
+    animated: true
+    pseudoRandomColor: |
+        function() {
+            return [
+                0.7 * (parseInt(feature.id, 16) / 100 % 1),     // jshint ignore:line
+                0.7 * (parseInt(feature.id, 16) / 10000 % 1),   // jshint ignore:line
+                0.7 * (parseInt(feature.id, 16) / 1000000 % 1), // jshint ignore:line
+                1
+            ];
+        }
+
+
+
+styles:
+    tron-palette:
+        shaders:
+            blocks:
+                global: |
+                    vec3 palette(in float x) {
+                        return mix(vec3(.030,1.000,1.),
+                                   vec3(1.,0.,0.75),
+                                   vec3(smoothstep(0.0,1.048, x),
+                                        sin(x*1.806),
+                                        smoothstep(-0.512,1.072,x)))*(1.0-sin(-0.196+x*3.950)*0.380);
+                    }
+    river-animation:
+        base: lines
+        mix: [generative-random, tron-palette, functions-zoom]
+        texcoords: true
+        animated: true
+        blend: overlay
+        shaders:
+            defines:
+                ZOOM_START: 3.
+                ZOOM_END: 18.
+                DATASTREAM_SPEED: 20.
+                DATASTREAM_ROADS: 6.5
+                DATASTREAM_MARGIN: z*.25
+                DATASTREAM_COLOR: palette( fract(floor(v_texcoord.x*DATASTREAM_ROADS)/DATASTREAM_ROADS+u_time*.21)*z )
+                DATASTREAM_AMOUNT: .8
+            blocks:
+                global: |
+                    float datastream_pattern(vec2 st, float v, float t) {
+                        float p = floor(st.y+v);
+                        return step(t, (random(p*.000001)+random(p))*.6 );
+                    }
+                color: |
+                    float z = zoom();
+                    float datastream_speed = (-.5 * random(floor(v_texcoord.x*DATASTREAM_ROADS)) - .5);
+                    color.rgb = mix(color.rgb,
+                                    DATASTREAM_COLOR,
+                                    z*
+                                    datastream_pattern( v_texcoord.xy,
+                                                        (u_time*DATASTREAM_SPEED)*datastream_speed,
+                                                        DATASTREAM_AMOUNT)*
+                                                    smoothstep(DATASTREAM_MARGIN,1.,sin(fract(v_texcoord.x*DATASTREAM_ROADS)*3.1415))
+                                                      );
+
+
+layers:
+    highriver:
+        data: { source: bigrivers }
+        filter:
+            $zoom: { max: 9 }
+        draw:
+
+            lines:
+                order: 101
+                cap: round
+                style: river-animation
+                color: '#9dc3de'
+                width: 9px
+                outline:
+                            # color: [0.541,0.969,0.949]
+                    color: [1.689,0.970,0.956]
+                    width: 3px

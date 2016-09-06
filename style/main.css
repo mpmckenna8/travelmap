@@ -1,0 +1,38 @@
+body {
+    margin: 0px;
+    border: 0px;
+    padding: 0px;
+    display:block;
+}
+
+
+div {
+  display:inline
+}
+
+
+
+.leaflet-popup div{
+  display: block;
+}
+
+div .label {
+  diplay: block;
+}
+
+#app {
+  display: inline-block;
+  width: 20%;
+  height: 50px;
+  background-color: orange;
+
+}
+
+#map {
+  display: inline-block;
+    height: 90%;
+    width: 75%;
+    position:absolute;
+    background-color: blue;
+
+}
